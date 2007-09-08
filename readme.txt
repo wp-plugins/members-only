@@ -34,7 +34,7 @@ If you choose to make your blog only accessible to visitors that are logged in, 
 
 == Screenshots ==
 
-1. Options to set you *Members Only* - either On or Off
+1. Options for *Members Only* - either On or Off
 
 == Known Issues ==
 
