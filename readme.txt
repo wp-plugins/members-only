@@ -4,13 +4,13 @@ Contributors: hami
 Tags: members, user, admin, restrict, posts, access
 Requires at least: 2.1
 Tested up to: 2.2.3
-Stable tag: members-only-0.1
+Stable tag: members-only-0.2
 
 A WordPress plugin that allows you to make your WordPress blog only viewable to visitors that are logged in.
 
 == Description ==
 
-*Members Only* is a simple WordPress plugin that allows you to make your blog only viewable to visitors that are logged in. If a visitor is not logged in, they will be redirected to the WordPress login page. Once logged in they will be redirected back to the page that they originally requested.
+*Members Only* is a simple WordPress plugin that allows you to make your blog only viewable to visitors that are logged in. If a visitor is not logged in, they will be redirected either to the WordPress login page or a page of your choice. Once logged in they can be redirected back to the page that they originally requested.
 
 == Installation ==
 
@@ -24,17 +24,22 @@ Once you have *Members Only* installed and activated you can change it's setting
 
 == Changes ==
 
-Initial release.
+*   0.2 - Added the ability to specify the page to redirect to, and the ability to turn off the redirection to the requested page.
+*   0.1 - Initial release.
 
 == Settings ==
 
-The settings for *Members Only* are extremely simple. You have a check box that will toggle whether your blog can be access by visitors with or without logging in. The default setting allows users to visit your blog as normal.
+The settings for *Members Only* are extremely simple. You have a check box that will toggle whether your blog can be access by visitors with or without logging in. The default setting allows visitors to visit your blog as normal.
 
-If you choose to make your blog only accessible to visitors that are logged in, a visitor that isn't logged in will be redirected to the WordPress login page. Once logged in they will be redirected back to the page that they originally requested.
+If you choose to make your blog only accessible to visitors that are logged in, a visitor that isn't logged in will be redirected to either the WordPress login page or a specific page of you choice. This choice can be selected via a drop down menu. You can enter the specific page to redirect to at the bottom of the options page, but if this field is left blank, visitors will be redirected to the login page instead
+
+If you chose to redirect to the WordPress login page, you can also decide whether once the visitor has logged if they will be redirected back to the page that they originally requested. This can be toggled with a check box.
+
+
 
 == Screenshots ==
 
-1. Options for *Members Only* - either On or Off
+1. Options for *Members Only*
 
 == Known Issues ==
 
