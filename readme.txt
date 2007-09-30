@@ -4,7 +4,7 @@ Contributors: hami
 Tags: members, user, admin, restrict, posts, access
 Requires at least: 2.1
 Tested up to: 2.2.3
-Stable tag: 0.2
+Stable tag: 0.3
 
 A WordPress plugin that allows you to make your WordPress blog only viewable to visitors that are logged in.
 
@@ -24,8 +24,16 @@ Once you have *Members Only* installed and activated you can change it's setting
 
 == Changes ==
 
-*   0.2 - Added the ability to specify the page to redirect to, and the ability to turn off the redirection to the requested page.
-*   0.1 - Initial release.
+**0.3**
+*   Fixed a error where in some situations WordPress would give an error saying `Warning: Cannot modify header information - headers already sent...`
+*   Excluded `wp-register.php` and `wp-admin/*` from being protected by *Members Only*.
+*   Exposed the page the visitor original requested so it can be used as a global variable (`$members_only_reqpage`).
+
+**0.2**
+*   Added the ability to specify the page to redirect to, and the ability to turn off the redirection to the requested page.
+
+**0.1**
+*   Initial release.
 
 == Settings ==
 

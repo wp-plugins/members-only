@@ -3,17 +3,23 @@
 Plugin Name: Members Only
 Plugin URI:  http://labs.saruken.com/
 Description: A simple plugin that allows you to make your WordPress blog only viewable to users that are logged in. If a visitor is not logged in, they will be redirected either to the WordPress login page or a page of your choice. Once logged in they can be redirected back to the page that they originally requested.
-Version: 0.2
+Version: 0.3
 Author: Andrew Hamilton 
 Author URI: http://andrewhamilton.net
 Licensed under the The GNU General Public License 2.0 (GPL) http://www.gnu.org/licenses/gpl.html
 */ 
 
 //----------------------------------------------------------------------------
+//		GLOBAL VARIABLES
+//----------------------------------------------------------------------------
+
+$members_only_opt = get_option('members_only_options'); //Members Only Options
+$members_only_reqpage = $_SERVER["REQUEST_URI"]; //The page that was originally requested
+
+//----------------------------------------------------------------------------
 //		SETUP FUNCTIONS
 //----------------------------------------------------------------------------
 
-$members_only_opt = get_option('members_only_options');
 
 function members_only_add_options_page() 
 {
@@ -34,11 +40,10 @@ function members_only_add_options_page()
 
 function members_only() 
 {
-	global $userdata, $members_only_opt;
+	global $userdata, $members_only_opt, $members_only_reqpage;
 	
 	$home = get_bloginfo('url'); //Get base URL or WordPress install
-	$requested_page = $_SERVER["REQUEST_URI"]; //Get the page that was originally requested
-	$currenturl = sprintf('http%s://%s%s',(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == TRUE ? 's': ''), $_SERVER['HTTP_HOST'], $_SERVER['REQUEST_URI']); //Get the current URL
+	$currenturl = sprintf('http%s://%s%s',(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == TRUE ? 's': ''), $_SERVER['HTTP_HOST'], $members_only_reqpage); //Get the current URL
 	
 	//Check redirection settings
 	if ($members_only_opt['redirect_to'] == 'login' || $members_only_opt['redirect_to'] == 'specifypage' && $members_only_opt['redirect_url'] == '') //If redirecting to login page or specified page is blank
@@ -47,7 +52,7 @@ function members_only()
 		if ($members_only_opt['redirect'] == TRUE) //If redirecting to original page after logging in
 		{
 			$redirect .= "?redirect_to=";
-			$redirect .= $requested_page;
+			$redirect .= $members_only_reqpage;
 		}
 	} 
 	elseif ($members_only_opt['redirect_to'] == 'specifypage' && $members_only_opt['redirect_url'] != '') //If redirecting to specific page
@@ -58,18 +63,19 @@ function members_only()
 	//Create Redirection URL
 	$redirection = $home.$redirect;
 		
-	if ($userdata->ID == '') //Check if user is logged in
+	if ($userdata->ID == '' && $members_only_opt['members_only'] == TRUE)//Check if user is logged in and blog is Members Only
 	{ 
-	
-		//Check we aren't already at the page we're redirecting to (with and without the trailing slash) or wanting to go to the login page
-		if ($currenturl == $redirection || $currenturl == $redirection.'/' || preg_match("/wp-login.php/i", $_SERVER["REQUEST_URI"]))
+		//Check we aren't already at the page we're redirecting to (with and without the trailing slash) or wanting to go to the login page, registration page or somewhere in wp-admin
+		if ($currenturl == $redirection || $currenturl == $redirection.'/' || preg_match("/wp-login.php/i", $_SERVER["REQUEST_URI"]) || preg_match("/wp-register.php/i", $_SERVER["REQUEST_URI"]) || preg_match("/wp-admin/i", $_SERVER["REQUEST_URI"]))
 		{
 			//Do Nothing
 		}
 		else
 		{
-			//Redirect Page	
-			wp_redirect($redirection);
+			//Redirect Page
+			ob_start();	
+			header("Location:".$redirection);
+			ob_end_flush();
 		}
 		
 	} 
@@ -178,11 +184,7 @@ global $wpdb;
 //		WORDPRESS FILTERS AND ACTIONS
 //----------------------------------------------------------------------------
 
+add_action('init', 'members_only');
 add_action('admin_menu', 'members_only_add_options_page');
-
-if ($members_only_opt['members_only'] == TRUE)
-{
-	add_action('wp_head', 'members_only');
-}
 
 ?>
