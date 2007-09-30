@@ -25,15 +25,15 @@ Once you have *Members Only* installed and activated you can change it's setting
 == Changes ==
 
 **0.3**
-*   Fixed a error where in some situations WordPress would give an error saying `Warning: Cannot modify header information - headers already sent...`
-*   Excluded `wp-register.php` and `wp-admin/*` from being protected by *Members Only*.
-*   Exposed the page the visitor original requested so it can be used as a global variable (`$members_only_reqpage`).
+* Fixed a error where in some situations WordPress would give an error saying `Warning: Cannot modify header information - headers already sent...`
+* Excluded `wp-register.php` and `wp-admin/*` from being protected by *Members Only*.
+* Exposed the page the visitor original requested so it can be used as a global variable (`$members_only_reqpage`).
 
 **0.2**
-*   Added the ability to specify the page to redirect to, and the ability to turn off the redirection to the requested page.
+* Added the ability to specify the page to redirect to, and the ability to turn off the redirection to the requested page.
 
 **0.1**
-*   Initial release.
+* Initial release.
 
 == Settings ==
 
