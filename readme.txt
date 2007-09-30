@@ -3,7 +3,7 @@
 Contributors: hami
 Tags: members, user, admin, restrict, posts, access
 Requires at least: 2.1
-Tested up to: 2.2.3
+Tested up to: 2.3
 Stable tag: 0.3
 
 A WordPress plugin that allows you to make your WordPress blog only viewable to visitors that are logged in.
