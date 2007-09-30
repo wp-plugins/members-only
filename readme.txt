@@ -4,7 +4,7 @@ Contributors: hami
 Tags: members, user, admin, restrict, posts, access
 Requires at least: 2.1
 Tested up to: 2.2.3
-Stable tag: mail-from-0.1
+Stable tag: 0.1
 
 A WordPress plugin that allows you to make your WordPress blog only viewable to visitors that are logged in.
 
@@ -34,7 +34,7 @@ If you choose to make your blog only accessible to visitors that are logged in, 
 
 == Screenshots ==
 
-1. Options to set you *Members Only* - either On or Off
+1. Options for *Members Only* - either On or Off
 
 == Known Issues ==
 
