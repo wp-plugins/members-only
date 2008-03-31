@@ -3,7 +3,7 @@
 Plugin Name: Members Only
 Plugin URI:  http://labs.saruken.com/
 Description: A simple plugin that allows you to make your WordPress blog only viewable to users that are logged in. If a visitor is not logged in, they will be redirected either to the WordPress login page or a page of your choice. Once logged in they can be redirected back to the page that they originally requested.
-Version: 0.3
+Version: 0.4
 Author: Andrew Hamilton 
 Author URI: http://andrewhamilton.net
 Licensed under the The GNU General Public License 2.0 (GPL) http://www.gnu.org/licenses/gpl.html
@@ -64,11 +64,18 @@ function members_only()
 	$redirection = $home.$redirect;
 		
 	if ($userdata->ID == '' && $members_only_opt['members_only'] == TRUE)//Check if user is logged in and blog is Members Only
-	{ 
-		//Check we aren't already at the page we're redirecting to (with and without the trailing slash) or wanting to go to the login page, registration page or somewhere in wp-admin
-		if ($currenturl == $redirection || $currenturl == $redirection.'/' || preg_match("/wp-login.php/i", $_SERVER["REQUEST_URI"]) || preg_match("/wp-register.php/i", $_SERVER["REQUEST_URI"]) || preg_match("/wp-admin/i", $_SERVER["REQUEST_URI"]))
+	{
+		//Check we aren't...
+		if (
+			$currenturl == $redirection || //...at the page we're redirecting to
+			$currenturl == $redirection.'/' || //...at the page we're redirecting to with the trailing slash
+			preg_match('/http:\/\/[^\/]+\/wp-login\.php/', $currenturl) || //...at the login page
+			preg_match('/http:\/\/[^\/]+\/wp-register\.php/', $currenturl) || //...at the registration page
+			preg_match('/http:\/\/[^\/]+\/xmlrpc\.php/', $currenturl) || //...requesting the XMLRPC file
+			preg_match('/http:\/\/[^\/]+\/wp-admin/', $currenturl) //...going somewhere within wp-admin
+			)
 		{
-			//Do Nothing
+			//Do Not Redirect
 		}
 		else
 		{
@@ -81,7 +88,7 @@ function members_only()
 	} 
 	else
 	{
-		//Do Nothing	
+		//Do Not Redirect	
 	}
 
 }
@@ -140,34 +147,34 @@ global $wpdb;
 	<div class="wrap">
 	<h2>Members Only Options</h2>
 	<form method="post" action="<?php echo $_SERVER['PHP_SELF'] . '?page=' . basename(__FILE__); ?>&updated=true">
-	<fieldset class="options">
+	<fieldset class="options" style="border: none">
 	<p>
 	Checking the <em>Members Only</em> option below will make your blog only viewable to users that are logged in. If a visitor is not logged in, 
 	they will be redirected to the WordPress login page or a page that you can specify. Once logged in they can be redirected back to the page that they originally requested if you choose to.
 	</p>
-	<table width="100%" cellspacing="2" cellpadding="5" class="editform">
+	<table width="100%" class="form-table">
 		<tr valign="center"> 
-			<th width="200px" scope="row">Members Only? </th> 
-			<td width="15px"><input name="members_only" type="checkbox" id="members_only_inp" value="1" <?php checked('1', $optionarray_def['members_only']); ?>"  /></td>
+			<th width="350px" scope="row">Members Only? </th> 
+			<td width="100px"><input name="members_only" type="checkbox" id="members_only_inp" value="1" <?php checked('1', $optionarray_def['members_only']); ?>"  /></td>
 			<td><span style="color: #555; font-size: .85em;">Toggle between making your blog only accessable to users that are logged in</span></td> 
 		</tr>
 		<tr valign="center"> 
-			<th width="200px" scope="row">Redirect To </th> 
-			<td width="15px"><select name="redirect_to" id="redirect_to_inp"><?php echo $redirectoptions ?></select></td>
+			<th width="350px" scope="row">Redirect To </th> 
+			<td width="100px"><select name="redirect_to" id="redirect_to_inp"><?php echo $redirectoptions ?></select></td>
 			<td><span style="color: #555; font-size: .85em;">Choose where a user that isn't logged in is redirected to</span></td> 
 		</tr>
 		<tr valign="center"> 
-			<th width="200px" scope="row">Return To Requested Page </th> 
-			<td width="15px"><input name="redirect" type="checkbox" id="redirect_inp" value="1" <?php checked('1', $optionarray_def['redirect']); ?>"  /></td>
+			<th width="350px" scope="row">Return To Requested Page </th> 
+			<td width="100px"><input name="redirect" type="checkbox" id="redirect_inp" value="1" <?php checked('1', $optionarray_def['redirect']); ?>"  /></td>
 			<td><span style="color: #555; font-size: .85em;">Once logged in, you can return the user to the originally requested page <br /><em>(Only applies if your redirecting to the login page)</em></span></td> 
 		</tr>
 	</table>
 	<p>
 	If you have choosen to redirect to a specific page other than the login page, please enter it below. 
 	<br /><span style="color: #555; font-size: .85em;"><em>(If the field is left blank, users will be redirected to the login page instead).</em></span></p>
-	<table width="100%" cellspacing="2" cellpadding="5" class="editform">
+	<table width="100%" class="form-table">
 		<tr valign="center"> 
-			<th width="200px" scope="row">Redirection Page</th> 
+			<th width="350px" scope="row">Redirection Page</th> 
 			<td><?php bloginfo('url');?>/<input type="text" name="redirect_url" id="redirect_url_inp" value="<?php echo $optionarray_def['redirect_url']; ?>" size="35" /></td>
 		</tr>
 	</table>
