@@ -3,7 +3,7 @@
 Plugin Name: Members Only
 Plugin URI:  http://labs.saruken.com/
 Description: A simple plugin that allows you to make your WordPress blog only viewable to users that are logged in. If a visitor is not logged in, they will be redirected either to the WordPress login page or a page of your choice. Once logged in they can be redirected back to the page that they originally requested.
-Version: 0.4.1
+Version: 0.4.2
 Author: Andrew Hamilton 
 Author URI: http://andrewhamilton.net
 Licensed under the The GNU General Public License 2.0 (GPL) http://www.gnu.org/licenses/gpl.html
@@ -67,14 +67,24 @@ function members_only()
 	$parsed_url = parse_url($currenturl);
 		
 	if ($userdata->ID == '' && $members_only_opt['members_only'] == TRUE)//Check if user is logged in and blog is Members Only
-	{
+	{	
+		//Check if page is a 404
+		if (is_404())
+		{
+			echo '404';
+			//Redirect Page
+			ob_start();	
+			header("Location:".$redirection);
+			ob_end_flush();
+		}
+	
 		//Check we aren't...
 		if (
 			$currenturl == $redirection || //...at the page we're redirecting to
 			$currenturl == $redirection.'/' || //...at the page we're redirecting to with the trailing slash
-			preg_match('/wp-login\.php/', $parsed_url[ path]) || //...at the login page
-			preg_match('/wp-register\.php/', $parsed_url[ path]) || //...at the registration page
-			preg_match('/xmlrpc\.php/', $parsed_url[ path]) || //...requesting the XMLRPC file
+			strpos('/wp-login\.php/', $parsed_url[ path]) || //...at the login page
+			strpos('/wp-register\.php/', $parsed_url[ path]) || //...at the registration page
+			strpos('/xmlrpc\.php/', $parsed_url[ path]) || //...requesting the XMLRPC file
 			preg_match('/wp-admin/', $parsed_url[ path]) //...going somewhere within wp-admin
 			)
 		{
@@ -194,7 +204,7 @@ global $wpdb;
 //		WORDPRESS FILTERS AND ACTIONS
 //----------------------------------------------------------------------------
 
-add_action('init', 'members_only');
+add_action('wp_head', 'members_only');
 add_action('admin_menu', 'members_only_add_options_page');
 
 ?>
