@@ -4,7 +4,7 @@ Contributors: hami
 Tags: members, user, admin, restrict, posts, access
 Requires at least: 2.1
 Tested up to: 2.5
-Stable tag: 0.4.1
+Stable tag: 0.4.2
 
 A WordPress plugin that allows you to make your WordPress blog only viewable to visitors that are logged in.
 
@@ -24,24 +24,29 @@ Once you have *Members Only* installed and activated you can change it's setting
 
 == Changes ==
 
+**0.4.2**
+*   Improved security on checking URLs. Replace all `preg_match` and replaced with `strpos` except checking for wp-admin URLs.
+*   Added checking for 404 pages. They now redirect to the login page too.
+*   Change where the plugin is called from `init` back to `wp_head` otherwise 404 pages can't be redirected. If this causes problems, like the 'Cannot modify header information' error you can change this back to `init` but a 404 page will be able to be seen as normal.
+
 **0.4.1**
-* *Actually* fixed the *critical flaw* in the `preg_match` used to check the url highlighted by [mrgreen](http://wordpress.org/support/topic/164011). The fix in 0.4 didn't work full as you could still add the full url of wp-login.php as a variable and bypass the check. The `preg-match` now uses `parse_url` to only check only the path of the url and nothing else. All users using *Members Only* should upgrade to version 0.4.1 as soon as possible to avoid this flaw being taken advantage of.
+*   *Actually* fixed the *critical flaw* in the `preg_match` used to check the url highlighted by [mrgreen](http://wordpress.org/support/topic/164011). The fix in 0.4 didn't work full as you could still add the full url of wp-login.php as a variable and bypass the check. The `preg-match` now uses `parse_url` to only check only the path of the url and nothing else. All users using *Members Only* should upgrade to version 0.4.1 as soon as possible to avoid this flaw being taken advantage of.
 
 **0.4**
-* Fixed a *critical flaw* in the `preg_match` used to check the url highlighted by [mrgreen](http://wordpress.org/support/topic/164011). All users using *Members Only* should upgrade to version 0.4 as soon as possible to avoid this simple flaw being taken advantage of.
-* Excluded `xmlrpc.php` from being protected by *Members Only*.
-* Tweaked Settings Page to suit WordPress 2.5
+*   Fixed a *critical flaw* in the `preg_match` used to check the url highlighted by [mrgreen](http://wordpress.org/support/topic/164011). All users using *Members Only* should upgrade to version 0.4 as soon as possible to avoid this simple flaw being taken advantage of.
+*   Excluded `xmlrpc.php` from being protected by *Members Only*.
+*   Tweaked Settings Page to suit WordPress 2.5
 
 **0.3**
-* Fixed a error where in some situations WordPress would give an error saying `Warning: Cannot modify header information - headers already sent...`
-* Excluded `wp-register.php` and `wp-admin/*` from being protected by *Members Only*.
-* Exposed the page the visitor original requested so it can be used as a global variable (`$members_only_reqpage`).
+*   Fixed a error where in some situations WordPress would give an error saying `Warning: Cannot modify header information - headers already sent...`
+*   Excluded `wp-register.php` and `wp-admin/*` from being protected by *Members Only*.
+*   Exposed the page the visitor original requested so it can be used as a global variable (`$members_only_reqpage`).
 
 **0.2**
-* Added the ability to specify the page to redirect to, and the ability to turn off the redirection to the requested page.
+*   Added the ability to specify the page to redirect to, and the ability to turn off the redirection to the requested page.
 
 **0.1**
-* Initial release.
+*   Initial release.
 
 == Settings ==
 
