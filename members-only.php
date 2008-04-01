@@ -3,7 +3,7 @@
 Plugin Name: Members Only
 Plugin URI:  http://labs.saruken.com/
 Description: A simple plugin that allows you to make your WordPress blog only viewable to users that are logged in. If a visitor is not logged in, they will be redirected either to the WordPress login page or a page of your choice. Once logged in they can be redirected back to the page that they originally requested.
-Version: 0.4
+Version: 0.4.1
 Author: Andrew Hamilton 
 Author URI: http://andrewhamilton.net
 Licensed under the The GNU General Public License 2.0 (GPL) http://www.gnu.org/licenses/gpl.html
@@ -62,6 +62,9 @@ function members_only()
 	
 	//Create Redirection URL
 	$redirection = $home.$redirect;
+	
+	//Parse URL
+	$parsed_url = parse_url($currenturl);
 		
 	if ($userdata->ID == '' && $members_only_opt['members_only'] == TRUE)//Check if user is logged in and blog is Members Only
 	{
@@ -69,13 +72,13 @@ function members_only()
 		if (
 			$currenturl == $redirection || //...at the page we're redirecting to
 			$currenturl == $redirection.'/' || //...at the page we're redirecting to with the trailing slash
-			preg_match('/http:\/\/[^\/]+\/wp-login\.php/', $currenturl) || //...at the login page
-			preg_match('/http:\/\/[^\/]+\/wp-register\.php/', $currenturl) || //...at the registration page
-			preg_match('/http:\/\/[^\/]+\/xmlrpc\.php/', $currenturl) || //...requesting the XMLRPC file
-			preg_match('/http:\/\/[^\/]+\/wp-admin/', $currenturl) //...going somewhere within wp-admin
+			preg_match('/wp-login\.php/', $parsed_url[ path]) || //...at the login page
+			preg_match('/wp-register\.php/', $parsed_url[ path]) || //...at the registration page
+			preg_match('/xmlrpc\.php/', $parsed_url[ path]) || //...requesting the XMLRPC file
+			preg_match('/wp-admin/', $parsed_url[ path]) //...going somewhere within wp-admin
 			)
 		{
-			//Do Not Redirect
+				//Do Not Redirect		
 		}
 		else
 		{

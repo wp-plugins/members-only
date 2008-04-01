@@ -4,7 +4,7 @@ Contributors: hami
 Tags: members, user, admin, restrict, posts, access
 Requires at least: 2.1
 Tested up to: 2.5
-Stable tag: 0.4
+Stable tag: 0.4.1
 
 A WordPress plugin that allows you to make your WordPress blog only viewable to visitors that are logged in.
 
@@ -23,6 +23,9 @@ This section describes how to install the plugin and get it working.
 Once you have *Members Only* installed and activated you can change it's settings in *Options > Members Only*.
 
 == Changes ==
+
+**0.4.1**
+* *Actually* fixed the *critical flaw* in the `preg_match` used to check the url highlighted by [mrgreen](http://wordpress.org/support/topic/164011). The fix in 0.4 didn't work full as you could still add the full url of wp-login.php as a variable and bypass the check. The `preg-match` now uses `parse_url` to only check only the path of the url and nothing else. All users using *Members Only* should upgrade to version 0.4.1 as soon as possible to avoid this flaw being taken advantage of.
 
 **0.4**
 * Fixed a *critical flaw* in the `preg_match` used to check the url highlighted by [mrgreen](http://wordpress.org/support/topic/164011). All users using *Members Only* should upgrade to version 0.4 as soon as possible to avoid this simple flaw being taken advantage of.
