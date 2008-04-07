@@ -1,9 +1,9 @@
 <?php
 /* 
 Plugin Name: Members Only
-Plugin URI:  http://labs.saruken.com/
+Plugin URI:  http://code.andrewhamilton.net/wordpress/plugins/members-only/
 Description: A simple plugin that allows you to make your WordPress blog only viewable to users that are logged in. If a visitor is not logged in, they will be redirected either to the WordPress login page or a page of your choice. Once logged in they can be redirected back to the page that they originally requested.
-Version: 0.5
+Version: 0.5.1
 Author: Andrew Hamilton
 Author URI: http://andrewhamilton.net
 Licensed under the The GNU General Public License 2.0 (GPL) http://www.gnu.org/licenses/gpl.html
@@ -15,7 +15,9 @@ Licensed under the The GNU General Public License 2.0 (GPL) http://www.gnu.org/l
 
 $members_only_opt = get_option('members_only_options'); //Members Only Options
 $members_only_reqpage = $_SERVER["REQUEST_URI"]; //The page that was originally requested
-$currenturl = sprintf('http%s://%s%s',(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == TRUE ? 's': ''), $_SERVER['HTTP_HOST'], $members_only_reqpage); //Get the current URL
+
+//Get the current URL
+$currenturl = (!empty($_SERVER['HTTPS'])) ? "https://".$_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI'] : "http://".$_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI'];
 
 //----------------------------------------------------------------------------
 //		SETUP FUNCTIONS
@@ -45,32 +47,28 @@ function members_only()
 	
 	//Get Redirect
 	$redirection = members_only_createredirect();
-	
-	//Parse URL
-	$parsed_url = parse_url($currenturl);
 		
-	if ($userdata->ID == '' && $members_only_opt['members_only'] == TRUE)//Check if user is logged in and blog is Members Only
+	if ($userdata->ID == '' && $members_only_opt['members_only'] == TRUE) //Check if user is logged in and blog is Members Only
 	{		
-		// Check if we are...
-		if (is_feed() && $members_only_opt['feed_access'] == TRUE) //...trying to get to feed and whether they are accessable)
+		// Check if whether we are...
+		if (is_feed() && $members_only_opt['feed_access'] == TRUE || //...trying to get to a feed and if they are accessable
+			$currenturl == $redirection || //...at the redirection page without a trailing slash 
+			$currenturl == $redirection.'/' //...at the redirection page with a trailing slash
+			) 		
 		{
 			// Do Nothing
 		}
-		elseif (
-			$currenturl != $redirection || //...at the page we're redirecting to
-			$currenturl != $redirection.'/' || //...at the page we're redirecting to with the trailing slash
-			!strpos('/wp-login\.php/', $parsed_url['path']) || //...at the login page
-			!strpos('/wp-register\.php/', $parsed_url['path']) || //...at the registration page
-			!strpos('/xmlrpc\.php/', $parsed_url['path']) || //...requesting the XMLRPC file
-			!preg_match('/wp-admin/', $parsed_url['path']) || //...going somewhere within wp-admin
-			is_404() //...at a 404
-			)
+		else 
 		{
 			//Redirect Page
 			members_only_redirect($redirection);
 		}		
 	}
 }
+
+//----------------------------------------------------------------------------
+//	Init Function
+//----------------------------------------------------------------------------
 
 function members_only_init()
 {
@@ -85,6 +83,7 @@ function members_only_init()
 	//Check if user is logged in and feeds are accessable
 	if ($userdata->ID == '' && $members_only_opt['feed_access'] == FALSE)
 	{
+		//WordPress Feed Files
 		switch (basename($_SERVER['PHP_SELF'])) 
 		{
 			case 'wp-rss.php':
@@ -92,10 +91,12 @@ function members_only_init()
 			case 'wp-atom.php':
 			case 'wp-rdf.php':
 			case 'wp-commentsrss2.php':
+			case 'wp-feed.php':
 				members_only_redirect($redirection);
 				break;
 		}
 		
+		//WordPress Feed Queries
 		switch ($parsed_url['query'])
 		{
 			case 'feed=rss':
@@ -107,6 +108,10 @@ function members_only_init()
 		}
 	}
 }
+
+//----------------------------------------------------------------------------
+//	Create Redirect Function
+//----------------------------------------------------------------------------
 
 function members_only_createredirect()
 {
@@ -134,6 +139,10 @@ function members_only_createredirect()
 	$output = $home.$output;
 	return $output;
 }
+
+//----------------------------------------------------------------------------
+//	Redirect Function
+//----------------------------------------------------------------------------
 
 function members_only_redirect($redirection)
 {
