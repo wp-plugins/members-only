@@ -27,7 +27,7 @@ Once you have *Members Only* installed and activated you can change it's setting
 == Changes ==
 
 **0.6**
-* New Feature: Added Feed Keys to give users unique URLs for your blog's feed.
+* *New Feature:* Added Feed Keys to give users unique URLs for your blog's feed.
 * Added the display of a user's Feed Key in their profile, and you can choose whether they can reset it or not.
 * Rewritten how feeds are protected by *Members Only* in order to use *Feed Keys*.
 * Improved setup function for future development and features.
