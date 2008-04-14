@@ -61,7 +61,7 @@ function members_only_setup_options()
 		'feedkey_reset' => TRUE
 	);
 		
-	if (empty($members_only_opt)){ //If there aren't already options for Running Time
+	if (empty($members_only_opt)){ //If there aren't already options for Members Only
 		add_option('members_only_options', $optionarray_def, 'Members Only Wordpress Plugin Options');
 	}	
 }
@@ -107,7 +107,7 @@ function members_only_display_feedkey()
 			<h3><?php echo $yourprofile ? _e("Your Feed Key", 'feed-key') : _e("User's Feed Key", 'feed-key') ?></h3>
 			<tr>
 				<th><label for="feedkey">Feed Key</label></th>
-				<td width="250px"><?php echo empty($feedkey) ? _e("A Feed Key has not been generated yet") : _e($feedkey); ?></td>
+				<td width="250px"><?php echo empty($feedkey) ? _e("Feed Key has not been generated yet") : _e($feedkey); ?></td>
 				<td>
 				<?php if ($current_user->has_cap('level_9') || $members_only_opt ['feedkey_reset'] == TRUE) { ?>
 				<input name="feedkey-reset" type="checkbox" id="feedkey-reset_inp" value="0" /><?php echo empty($feedkey) ? _e(" Generate Key") : _e(" Reset Key"); ?>
@@ -115,8 +115,8 @@ function members_only_display_feedkey()
 				</td>
 			</tr>
 			<tr>
-				<th><label for="feedkey"><?php echo $yourprofile ? _e("Your Feed URL", 'feed-key-url') : _e("User's Feed Key URL", 'feed-key-url') ?></label></th>
-				<td colspan="2"><?php echo empty($feedkey) ? _e("URL is available once a Feed Key has been generated") : _e($feedurl); ?></td>
+				<th><label for="feedkey">Your Feed URL</label></th>
+				<td colspan="2"><?php echo empty($feedkey) ? _e("URL is available once Feed Key has been generated") : _e($feedurl); ?></td>
 			</tr>
 		</table>
 		<?php
