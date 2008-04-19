@@ -3,7 +3,7 @@
 Plugin Name: Members Only
 Plugin URI:  http://code.andrewhamilton.net/wordpress/plugins/members-only/
 Description: A plugin that allows you to make your WordPress blog only viewable to users that are logged in. If a visitor is not logged in, they will be redirected either to the WordPress login page or a page of your choice. Once logged in they can be redirected back to the page that they originally requested. You can also protect your Feeds whilst allowing registered user access to them by using <em>Feed Keys</em>.
-Version: 0.6.1
+Version: 0.6.5
 Author: Andrew Hamilton
 Author URI: http://andrewhamilton.net
 Licensed under the The GNU General Public License 2.0 (GPL) http://www.gnu.org/licenses/gpl.html
@@ -25,6 +25,11 @@ $members_only_reqpage = $_SERVER["REQUEST_URI"];
 $feedkey_valid = FALSE;
 $feed_redirected = FALSE;
 
+//Get WordPress URLs and Title
+$blogurl = get_bloginfo('url');
+$wpurl = get_bloginfo('wpurl');
+$blogtitle = get_bloginfo('title');
+
 //Get the current URL
 $currenturl = (!empty($_SERVER['HTTPS'])) ? "https://".$_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI'] : "http://".$_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI'];
 
@@ -33,11 +38,10 @@ $currenturl = (!empty($_SERVER['HTTPS'])) ? "https://".$_SERVER['SERVER_NAME'].$
 //----------------------------------------------------------------------------
 
 $errormsg = array(
-	'feedkey_invalid' => 'The Feed Key you used is invalid. It is either incorrect or has been revoked. Please <a href="'.get_bloginfo('url').'/wp-login.php">login</a> to obtain a valid Feed Key',
-	'feedkey_missing' => 'You need to use a Feed Key to access feeds on this site. Please <a href="'.get_bloginfo('url').'/wp-login.php">login</a> to obtain yours.',
+	'feedkey_invalid' => 'The Feed Key you used is invalid. It is either incorrect or has been revoked. Please login to obtain a valid Feed Key',
+	'feedkey_missing' => 'You need to use a Feed Key to access feeds on this site. Please login to obtain yours.',
 	'feedkey_notgen' => 'Feed Key has not been generated yet',
 	'feedurl_notgen' => 'URL is available once Feed Key has been generated'
-	
 	);
 
 //----------------------------------------------------------------------------
@@ -49,7 +53,7 @@ function members_only_setup_options()
 	global $members_only_opt;
 	
 	$members_only_version = get_option('members_only_version'); //Members Only Version Number
-	$members_only_this_version = '0.6.1';
+	$members_only_this_version = '0.6.5';
 	
 	// Check the version of Members Only
 	if (empty($members_only_version))
@@ -99,20 +103,20 @@ function members_only_add_options_page()
 
 function members_only_display_feedkey()
 {	
-	global $profileuser, $current_user, $members_only_opt, $errormsg;
-	
-	$yourprofile = $profileuser->ID == $current_user->ID;
-	$feedkey = get_usermeta($profileuser->ID,'feed_key');
-	$permalink_structure = get_option(permalink_structure);
-	
-	//Check if Permalinks are being used
-	empty($permalink_structure) ? $feedjoin = '?feed=rss2&feedkey=' : $feedjoin = '/feed/?feedkey=';
-	
-	$feedurl = get_bloginfo('url').$feedjoin.$feedkey;
-	$feedurl = '<a href="'.$feedurl.'">'.$feedurl.'</a>';
+	global $profileuser, $current_user, $blogurl, $members_only_opt, $errormsg;
 
 	if ($members_only_opt ['feed_access'] == 'feedkey') //Check if Feed Keys are being used
 	{
+		$yourprofile = $profileuser->ID == $current_user->ID;
+		$feedkey = get_usermeta($profileuser->ID,'feed_key');
+		$permalink_structure = get_option(permalink_structure);
+		
+		//Check if Permalinks are being used
+		empty($permalink_structure) ? $feedjoin = '?feed=rss2&feedkey=' : $feedjoin = '/feed/?feedkey=';
+		
+		$feedurl = $blogurl.$feedjoin.$feedkey;
+		$feedurl = '<a href="'.$feedurl.'">'.$feedurl.'</a>';
+		
 		?>
 		<table class="form-table">
 			<h3><?php echo $yourprofile ? _e("Your Feed Key", 'feed-key') : _e("User's Feed Key", 'feed-key') ?></h3>
@@ -146,28 +150,24 @@ function members_only()
 {
 	global $currenturl, $members_only_opt, $feedkey_valid, $errormsg, $userdata;
 	
-	//Get Blog Information
-	$blogurl = get_bloginfo('url');
-	$blogtitle = get_bloginfo('title');
-	
 	//Get Redirect
 	$redirection = members_only_createredirect();
 		
-	if (empty($userdata->ID)) //Check if user is logged in and blog is Members Only
+	if (empty($userdata->ID)) //Check if user is logged in
 	{		
 		
 		if (is_feed()) //Check if URL is a Feed
 		{
-			if (empty($_GET['feedkey']))
+			if (empty($_GET['feedkey']) && $members_only_opt['feed_access'] == 'feedkeys')
 			{
-				$feed = members_only_create_feed($blogtitle, 'No Feed Key Found', $blogurl, $errormsg['feedkey_missing']);
+				$feed = members_only_create_feed('No Feed Key Found', $errormsg['feedkey_missing']);
 				header("Content-Type: application/xml; charset=ISO-8859-1");
 				echo $feed;
 				exit;
 			}
-			elseif ($feedkey_valid == FALSE) 
+			elseif ($feedkey_valid == FALSE && $members_only_opt['feed_access'] == 'feedkeys') 
 			{
-				$feed = members_only_create_feed($blogtitle, 'Feed Key is Invalid', $blogurl, $errormsg['feedkey_invalid']);
+				$feed = members_only_create_feed('Feed Key is Invalid', $errormsg['feedkey_invalid']);
 				header("Content-Type: application/xml; charset=ISO-8859-1");
 				echo $feed;
 				exit;
@@ -175,13 +175,15 @@ function members_only()
 			elseif ($feedkey_valid == TRUE || $members_only_opt['feed_access'] == 'feednone')
 			{
 				// Do Nothing
-			}	
-		}
-		
-		// Check if whether we are...
-		if ($currenturl == $redirection || //...at the redirection page without a trailing slash 
-			$currenturl == $redirection.'/' //...at the redirection page with a trailing slash
-			) 		
+			}
+			else //Not using Feed Keys
+			{
+				members_only_redirect($redirection);
+			}
+		}	// Check if whether we are...
+		elseif ($currenturl == $redirection || //...at the redirection page without a trailing slash 
+				$currenturl == $redirection.'/' //...at the redirection page with a trailing slash
+				) 		
 		{
 			// Do Nothing
 		}
@@ -193,23 +195,23 @@ function members_only()
 	}
 	else //User is logged in
 	{
-		if (is_feed() && $members_only_opt['require_feedkeys'] == TRUE) //If site requires Feed Keys for logged in users
+		if (is_feed() && $members_only_opt['feed_access'] == 'feedkeys' && $members_only_opt['require_feedkeys'] == TRUE) //If site requires Feed Keys for logged in users
 		{
 			if (empty($_GET['feedkey']))
 			{
-				$feed = members_only_create_feed($blogtitle, 'No Feed Key Found', $blogurl, $errormsg['feedkey_missing']);
+				$feed = members_only_create_feed('No Feed Key Found', $errormsg['feedkey_missing']);
 				header("Content-Type: application/xml; charset=ISO-8859-1");
 				echo $feed;
 				exit;
 			}
 			elseif ($feedkey_valid == FALSE) 
 			{
-				$feed = members_only_create_feed($blogtitle, 'Feed Key is Invalid', $blogurl, $errormsg['feedkey_invalid']);
+				$feed = members_only_create_feed('Feed Key is Invalid', $errormsg['feedkey_invalid']);
 				header("Content-Type: application/xml; charset=ISO-8859-1");
 				echo $feed;
 				exit;
 			}
-			elseif ($feedkey_valid == TRUE || $members_only_opt['feed_access'] == 'feednone')
+			elseif ($feedkey_valid == TRUE)
 			{
 				// Do Nothing
 			} 
@@ -231,67 +233,7 @@ function members_only_init()
 	//Parse URL
 	$parsed_url = parse_url($currenturl);
 	
-	//Check if user is logged in and if feeds are accessable
-	if (empty($userdata->ID) && $members_only_opt['feed_access'] != 'feednone')
-	{
-		$feedkey = $_GET['feedkey'];
-		
-		if (!empty($feedkey))
-		{
-			$feedkey_found = $wpdb->get_results("SELECT umeta_id FROM wp_usermeta WHERE meta_value = '$feedkey'");
-		}
-		
-		
-		if (empty($feedkey) || empty($feedkey_found))
-		{
-			//WordPress Feed Files
-			switch (basename($_SERVER['PHP_SELF'])) 
-			{
-				case 'wp-rss.php':
-				case 'wp-rss2.php':
-				case 'wp-atom.php':
-				case 'wp-rdf.php':
-				case 'wp-commentsrss2.php':
-				case 'wp-feed.php':
-					if (empty($feedkey) && $feed_redirected == FALSE)
-					{
-						members_only_redirect($redirection);
-						$feed_redirected = TRUE;
-					}
-					else
-					{
-						//Bring up WordPress Error Page
-						wp_die( __($errormsg['feedkey_invalid']));
-					}
-					break;
-			}
-		
-			//WordPress Feed Queries
-			switch ($_GET['feed'])
-			{
-				case 'rss':
-				case 'rss2':
-				case 'atom':
-				case 'rdf':
-					if (empty($feedkey) && $feed_redirected == FALSE)
-					{
-						members_only_redirect($redirection);
-						$feed_redirected = TRUE;
-					}
-					else
-					{
-						//Bring up WordPress Error Page
-						wp_die( __($errormsg['feedkey_invalid']));	
-					}
-					break;
-			}
-		}
-		else
-		{
-			$feedkey_valid = TRUE;
-		}
-	}
-	else //If User is logged in
+	if (!empty($userdata->ID)) // If user is logged in
 	{
 		//Get User's Feed key
 		$feedkey = get_usermeta($userdata->ID,'feed_key');
@@ -303,6 +245,82 @@ function members_only_init()
 			update_usermeta($userdata->ID, 'feed_key', $feedkey);
 		}
 	}
+	
+	if (empty($userdata->ID) && $members_only_opt['feed_access'] != 'feednone')  //Check if user is logged in or Feed Keys is required
+	{
+		$feedkey = $_GET['feedkey'];
+		
+		if (!empty($feedkey))
+		{
+			// Check if Feed Key is in the Database
+			$find_feedkey = $wpdb->get_results("SELECT umeta_id FROM wp_usermeta WHERE meta_value = '$feedkey'");
+			
+			if (!empty($find_feedkey)) //If Feed Key is found
+			{
+				$feedkey_valid = TRUE;
+			}
+		}
+		
+		//WordPress Feed Files
+		switch (basename($_SERVER['PHP_SELF'])) 
+		{
+			case 'wp-rss.php':
+			case 'wp-rss2.php':
+			case 'wp-atom.php':
+			case 'wp-rdf.php':
+			case 'wp-commentsrss2.php':
+			case 'wp-feed.php':
+				if (empty($feedkey) && $members_only_opt['feed_access'] == 'feedkeys')
+				{
+					$feed = members_only_create_feed('No Feed Key Found', $errormsg['feedkey_missing']);
+					header("Content-Type: application/xml; charset=ISO-8859-1");
+					echo $feed;
+					exit;
+				}
+				elseif ($feedkey_valid == FALSE && $members_only_opt['feed_access'] == 'feedkeys')
+				{
+					$feed = members_only_create_feed('Feed Key is Invalid', $errormsg['feedkey_invalid']);
+					header("Content-Type: application/xml; charset=ISO-8859-1");
+					echo $feed;
+					exit;
+				}
+				elseif ($feed_redirected == FALSE && $members_only_opt['feed_access'] != 'feedkeys') //Not Using Feed Keys
+				{
+					members_only_redirect($redirection);
+					$feed_redirected = TRUE;
+				}
+				break;
+		}
+	
+		//WordPress Feed Queries
+		switch ($_GET['feed'])
+		{
+			case 'rss':
+			case 'rss2':
+			case 'atom':
+			case 'rdf':
+				if (empty($feedkey) && $members_only_opt['feed_access'] == 'feedkeys')
+				{
+					$feed = members_only_create_feed('No Feed Key Found', $errormsg['feedkey_missing']);
+					header("Content-Type: application/xml; charset=ISO-8859-1");
+					echo $feed;
+					exit;
+				}
+				elseif ($feedkey_valid == FALSE && $members_only_opt['feed_access'] == 'feedkeys')
+				{
+					$feed = members_only_create_feed('Feed Key is Invalid', $errormsg['feedkey_invalid']);
+					header("Content-Type: application/xml; charset=ISO-8859-1");
+					echo $feed;
+					exit;
+				}
+				elseif ($feed_redirected == FALSE && $members_only_opt['feed_access'] != 'feedkeys') //Not Using Feed Keys
+				{
+					members_only_redirect($redirection);
+					$feed_redirected = TRUE;
+				}
+				break;
+		}
+	}
 }
 
 //----------------------------------------------------------------------------
@@ -311,28 +329,28 @@ function members_only_init()
 
 function members_only_createredirect()
 {
-	global $members_only_opt, $members_only_reqpage;
-	
-	$home = get_bloginfo('url'); //Get base URL or WordPress install
+	global $members_only_opt, $members_only_reqpage, $blogurl, $wpurl;
 	
 	//Check redirection settings
 	//If redirecting to login page or specified page is blank
 	if ($members_only_opt['redirect_to'] == 'login' || $members_only_opt['redirect_to'] == 'specifypage' && $members_only_opt['redirect_url'] == '')	
 	{
 		$output = "/wp-login.php";
+		
 		if ($members_only_opt['redirect'] == TRUE) //If redirecting to original page after logging in
 		{
 			$output .= "?redirect_to=";
 			$output .= $members_only_reqpage;
 		}
+		
+		$output = $wpurl.$output;
 	}
 	elseif ($members_only_opt['redirect_to'] == 'specifypage' && $members_only_opt['redirect_url'] != '') //If redirecting to specific page
 	{
 		$output = '/'.$members_only_opt['redirect_url'];
+		$output = $blogurl.$output;
 	}
-	
-	//Create Redirection URL
-	$output = $home.$output;
+
 	return $output;
 }
 
@@ -390,18 +408,20 @@ function members_only_reset_feedkey()
 //	Create RSS Feed Function
 //----------------------------------------------------------------------------
 
-function members_only_create_feed($blog_title, $item_title, $item_link, $item_description)
+function members_only_create_feed($item_title, $item_description)
 {	
+	global $blogtitle, $blogurl;
+	
 	$today = date('F j, Y G:i:s T');
 	
 	$feed_content = '<?xml version="1.0" encoding="ISO-8859-1" ?> 
 					<rss version="2.0"> 
 						<channel> 
-							<title>'.$blog_title.'</title>
-							<link>'.$item_link.'</link>
+							<title>'.$blogtitle.'</title>
+							<link>'.$blogurl.'</link>
 							<item>
 								<title>'.$item_title.'</title>
-								<link>'.$item_link.'</link>
+								<link>'.$blogurl.'</link>
 								<description>'.$item_description.'</description>
 								<pubDate>'.$today.'</pubDate>
 							</item>
@@ -418,7 +438,7 @@ function members_only_create_feed($blog_title, $item_title, $item_link, $item_de
 
 function members_only_options_page()
 {
-	global $wpdb;
+	global $wpdb, $wpversion;
 
 	if (isset($_POST['submit']) ) {
 		
@@ -480,28 +500,29 @@ function members_only_options_page()
 	<p>
 	Checking the <em>Members Only</em> option below will make your blog only viewable to users that are logged in. If a visitor is not logged in, 
 	they will be redirected to the WordPress login page or a page that you can specify. Once logged in they can be redirected back to the page that they originally requested if you choose to.
-	<table width="100%" class="form-table">
+	</p>
+	<table width="100%" <?php $wpversion >= 2.5 ? _e('class="form-table"') : _e('cellspacing="2" cellpadding="5" class="editform"'); ?> >
 		<tr valign="top">
-			<th width="350px" scope="row">Members Only?</th>
+			<th width="200px" scope="row">Members Only?</th>
 			<td width="100px"><input name="members_only" type="checkbox" id="members_only_inp" value="1" <?php checked('1', $optionarray_def['members_only']); ?>"  /></td>
 			<td><span style="color: #555; font-size: .85em;">Choose between making your blog only accessable to users that are logged in</span></td>
 		</tr>
 	</table>
 	</p>
 	<h3>Blog Access Options</h3>
-	<table width="100%" class="form-table">
+	<table width="100%" <?php $wpversion >= 2.5 ? _e('class="form-table"') : _e('cellspacing="2" cellpadding="5" class="editform"'); ?> >
 		<tr valign="top">
-			<th width="350px" scope="row">Redirect To</th>
-			<td width="100px"><select name="redirect_to" id="redirect_to_inp"><?php echo $redirectoptions ?></select></td>
+			<th scope="row">Redirect To</th>
+			<td><select name="redirect_to" id="redirect_to_inp"><?php echo $redirectoptions ?></select></td>
 			<td><span style="color: #555; font-size: .85em;">Choose where a user that isn't logged in is redirected to</span></td>
 		</tr>
 		<tr valign="top">
-			<th width="350px" scope="row">Return User</th>
+			<th width="200px" scope="row">Return User</th>
 			<td width="100px"><input name="redirect" type="checkbox" id="redirect_inp" value="1" <?php checked('1', $optionarray_def['redirect']); ?>"  /></td>
 			<td><span style="color: #555; font-size: .85em;">Choose whether once logged in, the user returns to the originally requested page <em>(Only applies if your redirecting to the login page)</em></span></td>
 		</tr>
 		<tr valign="top">
-			<th width="350px" scope="row">Redirection Page</th> 
+			<th scope="row">Redirection Page</th> 
 			<td colspan="2"><?php bloginfo('url');?>/<input type="text" name="redirect_url" id="redirect_url_inp" value="<?php echo $optionarray_def['redirect_url']; ?>" size="35" /><br />
 			<span style="color: #555; font-size: .85em;">If the field is left blank, users will be redirected to the login page instead. 
 			<em>(Only applies if your redirecting to the specific page)</em></span></span>
@@ -509,21 +530,23 @@ function members_only_options_page()
 		</tr>
 	</table>
 	<h3>Feed Access Options</h3>
+	<p>
 	<em>Members Only</em> can also protect your blog's feeds either by requiring a user to be logged in, or using <em>Feed Keys</em>. <em>Feed Keys</em> are unique 32bit keys that are created for every user on your site. This allows each user on your site to access your feeds using their own unique URL, so you can protect your feeds whilst still allowing your users to use other methods, such as feed readers, to access your feeds. Your users can also find their <em>Feed Key</em> in their profile page, and you can allow them to reset their <em>Feed Keys</em> if you choose.
-	<table width="100%" class="form-table">
+	</p>
+	<table width="100%" <?php $wpversion >= 2.5 ? _e('class="form-table"') : _e('cellspacing="2" cellpadding="5" class="editform"'); ?> >
 		<tr valign="top">
-			<th width="350px" scope="row">Feed Access</th>
+			<th width="200"px" scope="row">Feed Access</th>
 			<td width="100px"><select name="feed_access" id="feed_access_inp"><?php echo $feedprotectionoptions ?></select></td>
 			<td><span style="color: #555; font-size: .85em;">Choose if Feeds are accessable, by using Feed Keys, User Login or Open Feeds to anyone.<br /></span></td>
 		</tr>
 		<tr valign="top">
-			<th width="350px" scope="row">Require Feed Keys</th>
-			<td width="100px"><input name="require_feedkeys" type="checkbox" id="require_feedkeys_inp" value="1" <?php checked('1', $optionarray_def['require_feedkeys']); ?>"  /></select></td>
+			<th scope="row">Require Feed Keys</th>
+			<td><input name="require_feedkeys" type="checkbox" id="require_feedkeys_inp" value="1" <?php checked('1', $optionarray_def['require_feedkeys']); ?>  /></td>
 			<td><span style="color: #555; font-size: .85em;">Choose whether to always use Feed Keys even if user is logged in. <em>(Only applies if your using Feed Keys)</em></span></td>
 		</tr>
 		<tr valign="top">
-			<th width="350px" scope="row">User Reset</th>
-			<td width="100px"><input name="feedkey_reset" type="checkbox" id="feedkey_reset_inp" value="1" <?php checked('1', $optionarray_def['feedkey_reset']); ?>"  /></select></td>
+			<th scope="row">User Reset</th>
+			<td><input name="feedkey_reset" type="checkbox" id="feedkey_reset_inp" value="1" <?php checked('1', $optionarray_def['feedkey_reset']); ?> /></td>
 			<td><span style="color: #555; font-size: .85em;">Choose whether users can reset their own Feed Keys. <em>(Only applies if your using Feed Keys)</em></span></td>
 		</tr>
 	</table>
