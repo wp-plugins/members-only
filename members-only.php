@@ -3,7 +3,7 @@
 Plugin Name: Members Only
 Plugin URI:  http://code.andrewhamilton.net/wordpress/plugins/members-only/
 Description: A plugin that allows you to make your WordPress blog only viewable to users that are logged in. If a visitor is not logged in, they will be redirected either to the WordPress login page or a page of your choice. Once logged in they can be redirected back to the page that they originally requested. You can also protect your Feeds whilst allowing registered user access to them by using <em>Feed Keys</em>.
-Version: 0.7 alpha1
+Version: 0.7 alpha2
 Author: Andrew Hamilton
 Author URI: http://andrewhamilton.net
 Licensed under the The GNU General Public License 2.0 (GPL) http://www.gnu.org/licenses/gpl.html
@@ -109,9 +109,10 @@ function members_only_setup_options()
 		'default_post_protect' => 'anyone',
 		'default_page_protect' => 'members-only',
 		'redirect_to' => 'login',
+		'login_redirect_to' => 'dashboard',
 		'redirect_url' => '',
 		'redirect' => TRUE,
-		'feed_access' => 'feedkey',
+		'feed_access' => 'feedkeys',
 		'feedkey_reset' => TRUE,
 		'require_feedkeys' => FALSE
 	);
@@ -149,7 +150,7 @@ function members_only_display_feedkey()
 {	
 	global $profileuser, $current_user, $blogurl, $members_only_opt, $errormsg;
 
-	if ($members_only_opt ['feed_access'] == 'feedkey') //Check if Feed Keys are being used
+	if ($members_only_opt ['feed_access'] == 'feedkeys') //Check if Feed Keys are being used
 	{
 		$yourprofile = $profileuser->ID == $current_user->ID;
 		$feedkey = get_usermeta($profileuser->ID,'feed_key');
@@ -163,7 +164,7 @@ function members_only_display_feedkey()
 		
 		?>
 		<table class="form-table">
-			<h3><?php echo $yourprofile ? _e("Your Feed Key", 'feed-key') : _e("User's Feed Key", 'feed-key') ?></h3>
+			<h3><?php echo $yourprofile ? _e("Your Feed Key", 'feedkey') : _e("User's Feed Key", 'feedkey') ?></h3>
 			<tr>
 				<th><label for="feedkey">Feed Key</label></th>
 				<td width="250px"><?php echo empty($feedkey) ? _e($errormsg['feedkey_notgen']) : _e($feedkey); ?></td>
@@ -318,7 +319,7 @@ function members_only()
 	global $currenturl, $members_only_opt, $feedkey_valid, $errormsg, $userdata, $post;
 	
 	//Get Redirect
-	$redirection = members_only_createredirect();
+	$redirection = members_only_create_redirect();
 	
 	//Check whether the User is try to view a Page or Post
 	if (is_page() || is_single())
@@ -422,7 +423,7 @@ function members_only_init()
 	global $userdata, $currenturl, $feedkey_valid, $feed_redirected, $errormsg, $members_only_opt, $wpdb;
 	
 	//Get Redirect
-	$redirection = members_only_createredirect();
+	$redirection = members_only_create_redirect();
 	
 	//Parse URL
 	$parsed_url = parse_url($currenturl);
@@ -447,7 +448,7 @@ function members_only_init()
 		if (!empty($feedkey))
 		{
 			// Check if Feed Key is in the Database
-			$find_feedkey = $wpdb->get_results("SELECT umeta_id FROM wp_usermeta WHERE meta_value = '$feedkey'");
+			$find_feedkey = $wpdb->get_results("SELECT umeta_id FROM $wpdb->usermeta WHERE meta_value = '$feedkey'");
 			
 			if (!empty($find_feedkey)) //If Feed Key is found
 			{
@@ -521,7 +522,7 @@ function members_only_init()
 //	Create Redirect Function
 //----------------------------------------------------------------------------
 
-function members_only_createredirect()
+function members_only_create_redirect()
 {
 	global $members_only_opt, $members_only_reqpage, $blogurl, $wpurl;
 	
@@ -626,6 +627,19 @@ function members_only_create_feed($item_title, $item_description)
 }
 
 //----------------------------------------------------------------------------
+//	Login Redirect Function
+//----------------------------------------------------------------------------
+
+function members_only_login_redirect() {
+	global $redirect_to, $members_only_opt;
+	
+	if (!isset($_GET['redirect_to']) && $members_only_opt['login_redirect_to'] == 'frontpage') 
+	{
+		$redirect_to = get_option('siteurl');
+	}
+}
+
+//----------------------------------------------------------------------------
 //		ADMIN OPTION PAGE FUNCTIONS
 //----------------------------------------------------------------------------
 
@@ -642,6 +656,7 @@ function members_only_options_page()
 		'default_post_protect' => $_POST['default_post_protect'],
 		'default_page_protect' => $_POST['default_page_protect'],
 		'redirect_to' => $_POST['redirect_to'],
+		'login_redirect_to' => $_POST['login_redirect_to'],
 		'redirect_url' => $_POST['redirect_url'],
 		'redirect' => $_POST['redirect'],
 		'feed_access' => $_POST['feed_access'],
@@ -713,9 +728,25 @@ function members_only_options_page()
 		$redirectoptions .= "\n\t<option value='$value' $selected>$option</option>";
 	}
 	
+	// Setup Login Redirection Options
+	$loginredirecttypes = array(
+	'Dashboard' => 'dashboard',
+	'Front Page' => 'frontpage'
+	);
+	
+	foreach ($loginredirecttypes as $option => $value) {
+		if ($value == $optionarray_def['login_redirect_to']) {
+				$selected = 'selected="selected"';
+		} else {
+				$selected = '';
+		}
+		
+		$login_redirectoptions .= "\n\t<option value='$value' $selected>$option</option>";
+	}
+	
 	// Setup Feed Access Options
 	$feedaccesstypes = array(
-	'Use Feed Keys' => 'feedkey',
+	'Use Feed Keys' => 'feedkeys',
 	'Require User Login' => 'feedlogin',
 	'Open Feeds' => 'feednone'
 	);
@@ -774,7 +805,7 @@ function members_only_options_page()
 			<td width="100px"><select name="feed_access" id="feed_access_inp"><?php echo $feedprotectionoptions ?></select></td>
 			<td><span style="color: #555; font-size: .85em;">Choose if Feeds are accessable, by using Feed Keys, User Login or Open Feeds to anyone.<br /></span></td>
 		</tr>
-		<?php if ($optionarray_def['feed_access'] == 'feedkey') :?>
+		<?php if ($optionarray_def['feed_access'] == 'feedkeys') :?>
 		<tr valign="top">
 			<th scope="row">Require Feed Keys</th>
 			<td><input name="require_feedkeys" type="checkbox" id="require_feedkeys_inp" value="1" <?php checked('1', $optionarray_def['require_feedkeys']); ?>  /></td>
@@ -808,6 +839,11 @@ function members_only_options_page()
 			</td>
 		</tr>
 		<?php endif; ?>
+		<tr valign="top">
+			<th width="200px" scope="row">Login Redirect</th>
+			<td width="100px"><select name="login_redirect_to" id="login_redirect_to_inp"><?php echo $login_redirectoptions ?></select></td>
+			<td><span style="color: #555; font-size: .85em;">Choose where the User is redirected to if they login directly from the login page.</span></td>
+		</tr>
 	</table>
 	</fieldset>
 	<p />
@@ -831,6 +867,7 @@ if ($members_only_opt['members_only'] == TRUE) //Check if Members Only is Active
 	add_action('show_user_profile', 'members_only_display_feedkey');
 	add_action('edit_user_profile', 'members_only_display_feedkey');
 	add_action('profile_update', 'members_only_reset_feedkey');
+	add_action('login_form', 'members_only_login_redirect');
 	
 	if ($members_only_opt['protect'] == 'pagepost')
 	{
