@@ -27,6 +27,7 @@ Once you have *Members Only* installed and activated you can change it's setting
 == Changes ==
 
 **0.6.6**
+
 ¥ *New Feature:* Added redirection option for users who login directly to `wp-login.php`. You can now choose to redirect them to the Front Page or to the Dashboard as normal.
 
 ¥ *New Feature:* Added the ability to grant a one-time view to your blog from an Administrator's IP address allowing XML RPC applications, such as [WordPress for iPhone](http://iphone.wordpress.org/) to be able to login. 
@@ -36,6 +37,7 @@ Once you have *Members Only* installed and activated you can change it's setting
 ¥ Fixed a problem with Feed Keys not working in all situations due to a typo.
 
 **0.6.5**
+
 ¥ *New Feature:* Added the option of requiring *Feed Keys* even if the user is logged in.
 
 ¥ Changed the way *Feed Key* errors are display to the user. They no longer are displayed as a WordPress Error, *Members Only* now creates an RSS feed with the error in it.
@@ -46,6 +48,7 @@ Once you have *Members Only* installed and activated you can change it's setting
 
 
 **0.6**
+
 ¥ *New Feature:* Added Feed Keys to give users unique URLs for your blog's feed.
 
 ¥ Added the display of a user's Feed Key in their profile, and you can choose whether they can reset it or not.
@@ -57,6 +60,7 @@ Once you have *Members Only* installed and activated you can change it's setting
 ¥ Improved where how function behaves when *Members Only* is turned off rather than the plugin is deactivated.
 
 **0.5.1**
+
 ¥ Fixed a bug where redirecting to a specific page was causing an endless redirection loop.
 
 ¥ Simplified redirection logic and made it simpler. Using `template_redirect` no longer requires the plugin to exclude `wp-login.php`, `wp-register.php`, `xmlrpc.php` or anywhere in `wp-admin` from being inaccessible, or to check if page is a 404.
@@ -66,6 +70,7 @@ Once you have *Members Only* installed and activated you can change it's setting
 ¥ Removed `sprintf` from the variable that gets the current URL.
 
 **0.5**
+
 ¥ Added functionality making RSS feeds inaccessible. Calling the plugin at `wp_head` in previous versions made the feeds accessible without being logged in.
 
 ¥ Added the ability to toggle whether RSS feeds are accessible to the settings page.
@@ -75,6 +80,7 @@ Once you have *Members Only* installed and activated you can change it's setting
 ¥ Rewrote some functions in the plugin to make them tidier. 
 
 **0.4.2**
+
 ¥ Improved security on checking URLs. Replace all `preg_match` and replaced with `strpos` except checking for wp-admin URLs.
 
 ¥ Added checking for 404 pages. They now redirect to the login page too.
@@ -82,9 +88,11 @@ Once you have *Members Only* installed and activated you can change it's setting
 ¥ Change where the plugin is called from `init` back to `wp_head` otherwise 404 pages can't be redirected. If this causes problems, like the 'Cannot modify header information' error you can change this back to `init` but a 404 page will be able to be seen as normal.
 
 **0.4.1**
+
 ¥ *Actually* fixed the *critical flaw* in the `preg_match` used to check the url highlighted by [mrgreen](http://wordpress.org/support/topic/164011). The fix in 0.4 didn't work full as you could still add the full url of wp-login.php as a variable and bypass the check. The `preg-match` now uses `parse_url` to only check only the path of the url and nothing else. All users using *Members Only* should upgrade to version 0.4.1 as soon as possible to avoid this flaw being taken advantage of.
 
 **0.4**
+
 ¥ Fixed a *critical flaw* in the `preg_match` used to check the url highlighted by [mrgreen](http://wordpress.org/support/topic/164011). All users using *Members Only* should upgrade to version 0.4 as soon as possible to avoid this simple flaw being taken advantage of.
 
 ¥ Excluded `xmlrpc.php` from being protected by *Members Only*.
@@ -92,6 +100,7 @@ Once you have *Members Only* installed and activated you can change it's setting
 ¥ Tweaked Settings Page to suit WordPress 2.5
 
 **0.3**
+
 ¥ Fixed an error where in some situations WordPress would give an error saying `Warning: Cannot modify header information - headers already sent...`
 
 ¥ Excluded `wp-register.php` and `wp-admin/*` from being protected by *Members Only*.
@@ -99,9 +108,11 @@ Once you have *Members Only* installed and activated you can change it's setting
 ¥ Exposed the page the visitor original requested so it can be used as a global variable (`$members_only_reqpage`).
 
 **0.2**
+
 ¥ Added the ability to specify the page to redirect to, and the ability to turn off the redirection to the requested page.
 
 **0.1**
+
 ¥ Initial release.
 
 == Settings ==
