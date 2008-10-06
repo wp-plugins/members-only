@@ -5,7 +5,7 @@ Tags: members, user, admin, restrict, posts, access
 Donate link: http://code.andrewhamilton.net/donate/
 Requires at least: 2.1
 Tested up to: 2.6.2
-Stable tag: 0.6.7
+Stable tag: 0.6.6
 
 A WordPress plugin that allows you to make your WordPress blog only viewable to visitors that are logged in.
 
@@ -25,10 +25,6 @@ This section describes how to install the plugin and get it working.
 Once you have *Members Only* installed and activated you can change it's settings in *Settings > Members Only*.
 
 == Changes ==
-*0.6.7*
-
-1. Fixed a problem when there is no Feed Key with a call to an undefined function `add_usermeta`. Changed it to the correct `update_usermeta`.
-
 *0.6.6*
 
 1. **New Feature:** Added redirection option for users who login directly to `wp-login.php`. You can now choose to redirect them to the Front Page or to the Dashboard as normal.

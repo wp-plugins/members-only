@@ -3,7 +3,7 @@
 Plugin Name: Members Only
 Plugin URI:  http://code.andrewhamilton.net/wordpress/plugins/members-only/
 Description: A plugin that allows you to make your WordPress blog only viewable to users that are logged in. If a visitor is not logged in, they will be redirected either to the WordPress login page or a page of your choice. Once logged in they can be redirected back to the page that they originally requested. You can also protect your Feeds whilst allowing registered user access to them by using <em>Feed Keys</em>.
-Version: 0.6.7
+Version: 0.6.6
 Author: Andrew Hamilton
 Author URI: http://andrewhamilton.net
 Licensed under the The GNU General Public License 2.0 (GPL) http://www.gnu.org/licenses/gpl.html
@@ -53,7 +53,7 @@ function members_only_setup_options()
 	global $members_only_opt;
 	
 	$members_only_version = get_option('members_only_version'); //Members Only Version Number
-	$members_only_this_version = '0.6.7';
+	$members_only_this_version = '0.6.6';
 	
 	// Check the version of Members Only
 	if (empty($members_only_version))
@@ -275,7 +275,7 @@ function members_only_init()
 		if (empty($feedkey))
 		{
 			$feedkey = members_only_gen_feedkey();
-			update_usermeta($userdata->ID, 'feed_key', $feedkey);
+			add_usermeta($userdata->ID, 'feed_key', $feedkey);
 		}
 	}
 	
