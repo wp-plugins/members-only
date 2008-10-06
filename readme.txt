@@ -25,6 +25,9 @@ This section describes how to install the plugin and get it working.
 Once you have *Members Only* installed and activated you can change it's settings in *Settings > Members Only*.
 
 == Changes ==
+*0.6.7*
+
+1. Fixed a problem when there is no Feed Key with a call to an undefined function `add_usermeta`. Changed it to the correct `update_usermeta`.
 
 *0.6.6*
 
@@ -140,7 +143,7 @@ This allows `XML RPC` applications, such as WordPress for iPhone and other third
 
 1. Options for *Members Only*
 2. Displaying *Feed Keys* in a user's profile
-3. Admin option for generating a user's *Feed Key*
+3. Admin options for resetting a user's *Feed Key*
 
 == Known Issues ==
 
