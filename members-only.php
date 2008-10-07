@@ -3,7 +3,7 @@
 Plugin Name: Members Only
 Plugin URI:  http://code.andrewhamilton.net/wordpress/plugins/members-only/
 Description: A plugin that allows you to make your WordPress blog only viewable to users that are logged in. If a visitor is not logged in, they will be redirected either to the WordPress login page or a page of your choice. Once logged in they can be redirected back to the page that they originally requested. You can also protect your Feeds whilst allowing registered user access to them by using <em>Feed Keys</em>.
-Version: 0.7 alpha2
+Version: 0.7 alpha3
 Author: Andrew Hamilton
 Author URI: http://andrewhamilton.net
 Licensed under the The GNU General Public License 2.0 (GPL) http://www.gnu.org/licenses/gpl.html
@@ -25,7 +25,7 @@ if(!class_exists('members_only_manage_columns'))
 		{
 			$new = array();
 			$new['cb'] = $defaults['cb'];
-			$new['mo'] = __('<div class="vers"><img alt="Members Only" src="../wp-content/plugins/members-only/img/members-only-padlock.png" /></div>');
+			$new['mo'] = __('<div class="vers"><img alt="Members Only" src="'.content_url().'/plugins/members-only/img/members-only-padlock.png" /></div>');
 			unset($defaults['cb']);
 			//print_r(array_merge($new, $defaults));
 			return array_merge($new, $defaults);
@@ -88,10 +88,10 @@ $currenturl = (!empty($_SERVER['HTTPS'])) ? "https://".$_SERVER['SERVER_NAME'].$
 //----------------------------------------------------------------------------
 
 $errormsg = array(
-	'feedkey_invalid' => 'The Feed Key you used is invalid. It is either incorrect or has been revoked. Please login to obtain a valid Feed Key',
+	'feedkey_invalid' => 'The Feed Key you used is invalid. It is either incorrect or has been revoked. Please login to obtain a valid Feed Key.',
 	'feedkey_missing' => 'You need to use a Feed Key to access feeds on this site. Please login to obtain yours.',
-	'feedkey_notgen' => 'Feed Key has not been generated yet',
-	'feedurl_notgen' => 'URL is available once Feed Key has been generated'
+	'feedkey_notgen' => 'Feed Key not found.',
+	'feedurl_notgen' => 'URL is available once Feed Key has been generated.'
 	);
 
 //----------------------------------------------------------------------------
@@ -114,7 +114,8 @@ function members_only_setup_options()
 		'redirect' => TRUE,
 		'feed_access' => 'feedkeys',
 		'feedkey_reset' => TRUE,
-		'require_feedkeys' => FALSE
+		'require_feedkeys' => FALSE,
+		'one_time_view_ip' => NULL
 	);
 	
 	$optionarray_exclusionlist = array(
@@ -149,6 +150,23 @@ function members_only_add_options_page()
 function members_only_display_feedkey()
 {	
 	global $profileuser, $current_user, $blogurl, $members_only_opt, $errormsg;
+	
+	// Setup Feed Key Reset Options
+	$feedkey_reset_types = array(
+	'Feed Key Options...' => NULL,
+	'Reset Feed Key' => 'feedkey-reset',
+	'Remove Feed Key' => 'feedkey-remove'
+	);
+	
+	foreach ($feedkey_reset_types as $option => $value) {
+		if ($value == $optionarray_def['login_redirect_to']) {
+				$selected = 'selected="selected"';
+		} else {
+				$selected = '';
+		}
+		
+		$feedkey_reset_options .= "\n\t<option value='$value' $selected>$option</option>";
+	}
 
 	if ($members_only_opt ['feed_access'] == 'feedkeys') //Check if Feed Keys are being used
 	{
@@ -164,19 +182,26 @@ function members_only_display_feedkey()
 		
 		?>
 		<table class="form-table">
-			<h3><?php echo $yourprofile ? _e("Your Feed Key", 'feedkey') : _e("User's Feed Key", 'feedkey') ?></h3>
+			<h3><?php echo $yourprofile ? _e("Your Feed Key", 'feed-key') : _e("User's Feed Key", 'feed-key') ?></h3>
 			<tr>
 				<th><label for="feedkey">Feed Key</label></th>
-				<td width="250px"><?php echo empty($feedkey) ? _e($errormsg['feedkey_notgen']) : _e($feedkey); ?></td>
+				<td width="250px"><?php echo empty($feedkey) ? _e('<em>'.$errormsg['feedkey_notgen'].'</em>') : _e($feedkey); ?></td>
 				<td>
-				<?php if ($current_user->has_cap('level_9') || $members_only_opt ['feedkey_reset'] == TRUE) { ?>
-				<input name="feedkey-reset" type="checkbox" id="feedkey-reset_inp" value="0" /><?php echo empty($feedkey) ? _e(" Generate Key") : _e(" Reset Key"); ?>
-				<?php } ?>
+				
+				<?php if ($members_only_opt ['feedkey_reset'] == TRUE && !$current_user->has_cap('level_9')) : ?>
+					<input name="feedkey-reset" type="checkbox" id="feedkey-reset_inp" value="0" /> Reset Key
+				<?php elseif ($current_user->has_cap('level_9')) : ?>
+					<?php if (empty($feedkey)) : ?>
+						<input name="feedkey-generate" type="checkbox" id="feedkey-generate_inp" value="0" /> Generate Key
+					<?php else : ?>
+						<select name="feedkey-reset-admin" id="feedkey-reset-admin"><?php echo $feedkey_reset_options ?></select>
+					<?php endif; ?>
+				<?php endif; ?>
 				</td>
 			</tr>
 			<tr>
 				<th><label for="feedkey">Your Feed URL</label></th>
-				<td colspan="2"><?php echo empty($feedkey) ? _e($errormsg['feedurl_notgen']) : _e($feedurl); ?></td>
+				<td colspan="2"><?php echo empty($feedkey) ? _e('<em>'.$errormsg['feedurl_notgen'].'</em>') : _e($feedurl); ?></td>
 			</tr>
 		</table>
 		<?php
@@ -316,31 +341,41 @@ function members_only_save_meta()
 
 function members_only()
 {
-	global $currenturl, $members_only_opt, $feedkey_valid, $errormsg, $userdata, $post;
+	global $currenturl, $members_only_opt, $feedkey_valid, $errormsg, $userdata, $post, $current_user, $wpurl;
 	
 	//Get Redirect
 	$redirection = members_only_create_redirect();
 	
-	//Check whether the User is try to view a Page or Post
-	if (is_page() || is_single())
+	if (md5($_SERVER['REMOTE_ADDR']) == $members_only_opt['one_time_view_ip'] && $members_only_opt['protect'] == 'all' && XMLRPC_REQUEST)	//Check for one-time allowed IP address
 	{
-		if (empty($userdata->ID)) //Check if user is logged in
+		//Remove IP and Update Settings
+		$members_only_opt['one_time_view_ip'] = NULL;
+		update_option('members_only_options', $members_only_opt);
+		
+		//Do Nothing
+		return;
+	}
+	
+
+	if (empty($userdata->ID)) //Check if user is logged in
+	{
+		if ($currenturl == $redirection || //...at the redirection page without a trailing slash 
+			$currenturl == $redirection.'/' //...at the redirection page with a trailing slash
+			)
 		{
-			if ($currenturl == $redirection || //...at the redirection page without a trailing slash 
-				$currenturl == $redirection.'/' //...at the redirection page with a trailing slash
-				)
+			// Do Nothing
+		}
+		elseif ($members_only_opt['protect'] == 'all') //Protecting Entire Site
+		{
+			//Redirect Page
+			members_only_redirect($redirection);
+		}
+		elseif ($members_only_opt['protect'] == 'pagepost') //Protecting Specific Posts or Pages
+		{
+			$cur_post_access = get_post_meta($post->ID, '_post_access', true);
+			
+			if (is_page() || is_single()) //Check whether the User is trying to view a Post or Page
 			{
-				// Do Nothing
-			}
-			elseif ($members_only_opt['protect'] == 'all') //Protecting Entire Site
-			{
-				//Redirect Page
-				members_only_redirect($redirection);
-			}
-			elseif ($members_only_opt['protect'] == 'pagepost') //Protecting Specific Posts or Pages
-			{
-				$cur_post_access = get_post_meta($post->ID, '_post_access', true);
-				
 				if ($cur_post_access == 'members-only')
 				{
 					//Redirect Page
@@ -450,7 +485,7 @@ function members_only_init()
 			// Check if Feed Key is in the Database
 			$find_feedkey = $wpdb->get_results("SELECT umeta_id FROM $wpdb->usermeta WHERE meta_value = '$feedkey'");
 			
-			if (!empty($find_feedkey)) //If Feed Key is found
+			if (!empty($find_feedkey) && $members_only_opt['feed_access'] == 'feedkeys') //If Feed Key is found and using Feed Keys
 			{
 				$feedkey_valid = TRUE;
 			}
@@ -591,10 +626,16 @@ function members_only_gen_feedkey()
 function members_only_reset_feedkey()
 {	
 	$id = $_POST['user_id'];
-
-	if ($_POST['feedkey-reset'] == 0) //If the reset check box is checked
+	
+	if ($_POST['feedkey-reset'] != NULL || $_POST['feedkey-generate'] != NULL || $_POST['feedkey-reset-admin'] == 'feedkey-reset') //If the reset or generate check box is checked
 	{
 		$feedkey = members_only_gen_feedkey();
+		update_usermeta($id, 'feed_key', $feedkey);
+	}
+	
+	if ($_POST['feedkey-reset-admin'] == 'feedkey-remove')
+	{
+		$feedkey = NULL;
 		update_usermeta($id, 'feed_key', $feedkey);
 	}
 }
@@ -639,6 +680,8 @@ function members_only_login_redirect() {
 	}
 }
 
+
+
 //----------------------------------------------------------------------------
 //		ADMIN OPTION PAGE FUNCTIONS
 //----------------------------------------------------------------------------
@@ -648,6 +691,16 @@ function members_only_options_page()
 	global $wpdb, $wpversion;
 
 	if (isset($_POST['submit']) ) {
+	
+		if ($_POST['one_time_view_ip'] == 1)
+		{
+			
+			$one_time_view_ip = md5($_SERVER['REMOTE_ADDR']);
+		}
+		else
+		{
+			$one_time_view_ip = NULL;
+		}
 		
 	// Options Array Update
 	$optionarray_update = array (
@@ -661,7 +714,8 @@ function members_only_options_page()
 		'redirect' => $_POST['redirect'],
 		'feed_access' => $_POST['feed_access'],
 		'feedkey_reset' => $_POST['feedkey_reset'],
-		'require_feedkeys' => $_POST['require_feedkeys']
+		'require_feedkeys' => $_POST['require_feedkeys'],
+		'one_time_view_ip' => $one_time_view_ip
 	);
 	
 	update_option('members_only_options', $optionarray_update);
@@ -794,6 +848,14 @@ function members_only_options_page()
 			<td><span style="color: #555; font-size: .85em;">Default Protection Option for Pages</span></td>
 		</tr>
 		<?php endif; ?>
+		<?php if ($optionarray_def['protect'] == 'all') :?>
+		<tr valign="top">
+			<th scope="row">XML RPC Access</th>
+			<td width="100px"><input name="one_time_view_ip" type="checkbox" id="one_time_view_ip_inp" value="1" <?php checked('1', $optionarray_def['one_time_view_ip']); ?>"  /></td>
+			<td><span style="color: #555; font-size: .85em;">Allow a one-time view from <strong><span style="font-size: 1.2em;"><?php echo $_SERVER['REMOTE_ADDR'];?></span></strong>, to add your blog to an XML RPC application <em>(such a WordPress for iPhone)</em></span></span>
+			</td>
+		</tr>
+		<?php endif; ?>
 	</table>
 	<h3>Feed Access Options</h3>
 	<p>
@@ -859,6 +921,7 @@ function members_only_options_page()
 //----------------------------------------------------------------------------
 
 add_action('admin_menu', 'members_only_add_options_page');
+add_action('login_form', 'members_only_login_redirect');
 		
 if ($members_only_opt['members_only'] == TRUE) //Check if Members Only is Active
 {
@@ -867,7 +930,6 @@ if ($members_only_opt['members_only'] == TRUE) //Check if Members Only is Active
 	add_action('show_user_profile', 'members_only_display_feedkey');
 	add_action('edit_user_profile', 'members_only_display_feedkey');
 	add_action('profile_update', 'members_only_reset_feedkey');
-	add_action('login_form', 'members_only_login_redirect');
 	
 	if ($members_only_opt['protect'] == 'pagepost')
 	{
