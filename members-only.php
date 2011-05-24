@@ -3,7 +3,7 @@
 Plugin Name: Members Only
 Plugin URI:  http://code.andrewhamilton.net/wordpress/plugins/members-only/
 Description: A plugin that allows you to make your WordPress blog only viewable to users that are logged in. If a visitor is not logged in, they will be redirected either to the WordPress login page or a page of your choice. Once logged in they can be redirected back to the page that they originally requested. You can also protect your Feeds whilst allowing registered user access to them by using <em>Feed Keys</em>.
-Version: 0.7 alpha3
+Version: 0.7 alpha4
 Author: Andrew Hamilton
 Author URI: http://andrewhamilton.net
 Licensed under the The GNU General Public License 2.0 (GPL) http://www.gnu.org/licenses/gpl.html
@@ -346,6 +346,9 @@ function members_only()
 	//Get Redirect
 	$redirection = members_only_create_redirect();
 	
+	//Ask if user is logged in
+	$userloggedin = is_user_logged_in();
+	
 	if (md5($_SERVER['REMOTE_ADDR']) == $members_only_opt['one_time_view_ip'] && $members_only_opt['protect'] == 'all' && XMLRPC_REQUEST)	//Check for one-time allowed IP address
 	{
 		//Remove IP and Update Settings
@@ -356,8 +359,7 @@ function members_only()
 		return;
 	}
 	
-
-	if (empty($userdata->ID)) //Check if user is logged in
+	if (empty($userloggedin)) //Check if user is logged in
 	{
 		if ($currenturl == $redirection || //...at the redirection page without a trailing slash 
 			$currenturl == $redirection.'/' //...at the redirection page with a trailing slash
@@ -388,7 +390,7 @@ function members_only()
 	//Check whether the User is try to view a Feed
 	if (is_feed())
 	{	
-		if (empty($userdata->ID)) //Check if user is logged in
+		if (empty($userloggedin)) //Check if user is logged in
 		{
 			//Protect Feed
 			members_only_feedprotect();
@@ -463,7 +465,10 @@ function members_only_init()
 	//Parse URL
 	$parsed_url = parse_url($currenturl);
 	
-	if (!empty($userdata->ID)) // If user is logged in
+	//Ask if user is logged in
+	$userloggedin = is_user_logged_in();
+	
+	if (!empty($userloggedin)) // If user is logged in
 	{
 		//Get User's Feed key
 		$feedkey = get_usermeta($userdata->ID,'feed_key');
@@ -476,7 +481,7 @@ function members_only_init()
 		}
 	}
 	
-	if (empty($userdata->ID) && $members_only_opt['feed_access'] != 'feednone')  //Check if user is logged in or Feed Keys is required
+	if (empty($userloggedin) && $members_only_opt['feed_access'] != 'feednone')  //Check if user is logged in or Feed Keys is required
 	{
 		$feedkey = $_GET['feedkey'];
 		
@@ -563,7 +568,7 @@ function members_only_create_redirect()
 	
 	//Check redirection settings
 	//If redirecting to login page or specified page is blank
-	if ($members_only_opt['redirect_to'] == 'login' || $members_only_opt['redirect_to'] == 'specifypage' && $members_only_opt['redirect_url'] == '')	
+	if ($members_only_opt['redirect_to'] == 'login')	
 	{
 		$output = "/wp-login.php";
 		
@@ -575,7 +580,7 @@ function members_only_create_redirect()
 		
 		$output = $wpurl.$output;
 	}
-	elseif ($members_only_opt['redirect_to'] == 'specifypage' && $members_only_opt['redirect_url'] != '') //If redirecting to specific page
+	elseif ($members_only_opt['redirect_to'] == 'specifypage') //If redirecting to specific page
 	{
 		$output = '/'.$members_only_opt['redirect_url'];
 		$output = $blogurl.$output;
@@ -897,7 +902,7 @@ function members_only_options_page()
 		<tr valign="top">
 			<th scope="row">Redirection Page</th> 
 			<td colspan="2"><?php bloginfo('url');?>/<input type="text" name="redirect_url" id="redirect_url_inp" value="<?php echo $optionarray_def['redirect_url']; ?>" size="35" /><br />
-			<span style="color: #555; font-size: .85em;">If the field is left blank, users will be redirected to the login page instead.</span>
+			<span style="color: #555; font-size: .85em;">If the field is left blank, users will able to access your front page without being logged in.</span>
 			</td>
 		</tr>
 		<?php endif; ?>
